@@ -70,21 +70,37 @@ describe "ntp class:", :unless => UNSUPPORTED_PLATFORMS.include?(fact('osfamily'
     end
   end
 
-  describe 'config_template' do
+  describe 'config_template and config_epp' do
     before :all do
       modulepath = default['distmoduledir']
       shell("mkdir -p #{modulepath}/test/templates")
       shell("echo 'testcontent' >> #{modulepath}/test/templates/ntp.conf.epp")
+      shell("echo 'testcontent' >> #{modulepath}/test/templates/ntp.conf.erb")
     end
 
-    it 'sets the ntp.conf location' do
-      pp = "class { 'ntp': config_template => 'test/ntp.conf.epp' }"
+    it 'sets the ntp.conf erb template location' do
+      pp = "class { 'ntp': config_template => 'test/ntp.conf.erb' }"
       apply_manifest(pp, :catch_failures => true)
     end
 
     describe file("#{config}") do
       it { should be_file }
       its(:content) { should match 'testcontent' }
+    end
+
+    it 'sets the ntp.conf epp template location' do
+      pp = "class { 'ntp': config_epp => 'test/ntp.conf.epp' }"
+      apply_manifest(pp, :catch_failures => true)
+    end
+
+    describe file("#{config}") do
+      it { should be_file }
+      its(:content) { should match 'testcontent' }
+    end
+
+    it 'sets the ntp.conf epp template location and the ntp.conf erb template location which should fail' do
+      pp = "class { 'ntp': config_template => 'test/ntp.conf.erb', config_epp => 'test/ntp.conf.epp' }"
+      expect(apply_manifest(pp, :expect_failures => true).stderr).to match(/Cannot supply both config_epp and config_template/i)
     end
   end
 
