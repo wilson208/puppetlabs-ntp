@@ -70,12 +70,13 @@ describe "ntp class:", :unless => UNSUPPORTED_PLATFORMS.include?(fact('osfamily'
     end
   end
 
-  describe 'config_template and config_epp' do
+  describe 'config_template' do
     before :all do
       modulepath = default['distmoduledir']
       shell("mkdir -p #{modulepath}/test/templates")
-      shell("echo 'testcontent' >> #{modulepath}/test/templates/ntp.conf.epp")
-      shell("echo 'testcontent' >> #{modulepath}/test/templates/ntp.conf.erb")
+      #The looping over an array of length 1 is unnecessary, however the ERB/EPP
+      #Syntax differs for this scenario
+      shell("echo '<% [1].each do |i| %>erbserver<%= i %><%end %>' >> #{modulepath}/test/templates/ntp.conf.erb")
     end
 
     it 'sets the ntp.conf erb template location' do
@@ -85,7 +86,22 @@ describe "ntp class:", :unless => UNSUPPORTED_PLATFORMS.include?(fact('osfamily'
 
     describe file("#{config}") do
       it { should be_file }
-      its(:content) { should match 'testcontent' }
+      its(:content) { should match 'erbserver1' }
+    end
+
+    it 'sets the ntp.conf epp template location and the ntp.conf erb template location which should fail' do
+      pp = "class { 'ntp': config_template => 'test/ntp.conf.erb', config_epp => 'test/ntp.conf.epp' }"
+      expect(apply_manifest(pp, :expect_failures => true).stderr).to match(/Cannot supply both config_epp and config_template/i)
+    end
+  end
+
+  describe 'config_epp' do
+    before :all do
+      modulepath = default['distmoduledir']
+      shell("mkdir -p #{modulepath}/test/templates")
+      #The looping over an array of length 1 is unnecessary, however the ERB/EPP
+      #Syntax differs for this scenario
+      shell("echo '<% [1].each |$i| { -%>eppserver<%= $i %><% } -%>' >> #{modulepath}/test/templates/ntp.conf.epp")
     end
 
     it 'sets the ntp.conf epp template location' do
@@ -95,7 +111,7 @@ describe "ntp class:", :unless => UNSUPPORTED_PLATFORMS.include?(fact('osfamily'
 
     describe file("#{config}") do
       it { should be_file }
-      its(:content) { should match 'testcontent' }
+      its(:content) { should match 'eppserver1' }
     end
 
     it 'sets the ntp.conf epp template location and the ntp.conf erb template location which should fail' do

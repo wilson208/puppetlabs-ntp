@@ -1,4 +1,1 @@
-#my uber ntp config
-#
-
-server foobar
+<% [1].each |$i| { -%>eppserver<%= $i %><% } -%>
